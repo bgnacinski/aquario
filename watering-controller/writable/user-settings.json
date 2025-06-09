@@ -1,3 +1,4 @@
 {
-  "global_lock": true
+  "global_lock": true,
+  "schedule": {}
 }

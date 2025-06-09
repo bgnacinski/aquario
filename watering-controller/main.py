@@ -1,5 +1,4 @@
 from lib.gpiocontroller import GPIOController
-from lib.schedule import ScheduleManager
 from lib.settings import SettingsManager
 from lib.config import ConfigManager
 from lib.logger import Logger
@@ -10,7 +9,7 @@ import time
 
 logger = Logger("main")
 
-schedule_manager = ScheduleManager()
+#schedule_manager = ScheduleManager()
 config = ConfigManager("config.json")
 settings_manager = SettingsManager()
 SETTINGS = settings_manager.get()
@@ -23,16 +22,19 @@ SECTIONS = config.get("sections")
 #TODO: stworzenie pliku testowego testującego całość zakresu działania
 #TODO: sprawdzanie pogody w funkcji section_watering, gdy pada - nie podlewamy, chyba że ręcznie zostało to włączone.
 # -------------------------------------
-def status_update(message: str, error: bool = False):
+def send_message(topic:str, message: dict):
     global mqtt_client
 
-    topic = mqtt_config["topic_prefix"] + "message"
+    mqtt_client.publish(topic, json.dumps(message))
+
+def status_update(message: str, error: bool = False):
+    topic = mqtt_config["topic_prefix"] + "messages"
     payload = {
         "message": message,
         "error": error
     }
 
-    mqtt_client.publish(topic, json.dumps(payload))
+    send_message(topic, payload)
 
 def section_watering(section: str, enable: bool = True):
     global SETTINGS
@@ -115,60 +117,73 @@ def on_connect(client, userdata, flags, rc, properties=None):
     client.subscribe(mqtt_config["topic_prefix"] + "#")
 
 def on_message(client, userdata, msg):
+    global SETTINGS
+
     topic = msg.topic
     try:
         payload = json.loads(msg.payload.decode())
     except json.JSONDecodeError:
         payload = msg.payload.decode()
 
-    if topic == mqtt_config["topic_prefix"] + "schedule":  # schedule set
-        schedule.clear()
+    try:
+        if topic == mqtt_config["topic_prefix"] + "manage":
+            if not payload["operation"] or not payload["reply_to"]:
+                raise KeyError("'operation' and 'reply_to' are required.")
 
-        tasks = []
+            operation = payload["operation"]
+            reply_to = payload["reply_to"]
 
-        for task in payload["schedule"]:
-            # schedule packet schema
-            tasks.append({
-                "section": task["section"],
-                "start_at": task["start_at"],
-                "end_at": task["end_at"],
-                "every": task["every"] # day name(e.g. monday, tuesday...) / * for everyday
-            })
+            # settings or state manipulation
+            if operation == "set":
+                setting = payload["setting"]
+                value = payload["value"]
 
-        schedule_manager.save(tasks)
-        settings_manager.save_schedule(tasks)
-        set_schedule(tasks)
-        logger.info(f"Schedule set. Schedule: {tasks}")
-        status_update("Schedule set", False)
+                if setting not in ["*", "section", "schedule", "lock_until"]:
+                    raise KeyError(f"Undefined setting '{setting}'")
 
-    elif topic == mqtt_config["topic_prefix"] + "manual":
-        try:
-            section = payload["section"]
-            state = bool(payload["enabled"])
-        except KeyError or ValueError:
-            logger.error(f"Invalid payload {payload}")
-            return
+                elif setting == "section" and type(value) != dict:
+                    raise KeyError("'section' requires object with 'name' and 'enabled' properties as 'value' key.")
 
-        section_watering(section, state)
+                # if manual section switch, perform only switching
+                if setting == "section":
+                    section_watering(value["name"], value["enabled"])
+                    return
 
-    elif topic == mqtt_config["topic_prefix"] + "settings":
-        global SETTINGS
+                settings_manager.write(value, setting)
+                SETTINGS = settings_manager.get()
 
-        try:
-            setting = payload["setting"]
-            value = payload["value"]
+                # update schedule if needed
+                if setting == "schedule":
+                    set_schedule(value)
 
-            settings_manager.write(value, setting)
-            SETTINGS = settings_manager.get()
+                logger.info(f"Updated setting '{setting}' to '{value}'.")
 
-        except KeyError:
-            value = payload["value"]
-            settings_manager.write(value)
+            # information request
+            elif operation == "get":
+                if payload["setting"] and payload["setting"] in ["*", "schedule", "lock_until"]:
+                    response_value = settings_manager.get(payload["setting"])
 
-            SETTINGS = settings_manager.get()
+                # getting sections defined in config, read-only property
+                elif payload["setting"] == "sections":
+                    response_value = SECTIONS
 
-        except Exception as e:
-            logger.error(f"Error: {e}")
+                else:
+                    response_value = settings_manager.get()
+
+                response = {
+                    "setting": payload["setting"] or "*",
+                    "value": response_value
+                }
+
+                send_message(reply_to, response)
+
+            else:
+                raise ValueError("'operation' may be only 'set' or 'get'")
+
+    except KeyError or ValueError as e:
+        logger.error(f"Invalid payload {payload}.\nError: {e}")
+        status_update(f"Invalid payload {payload}.\nError: {e}", True)
+        return
 
 # load schedule from file
 schedule_json = settings_manager.read_schedule()

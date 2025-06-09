@@ -20,7 +20,7 @@ class Logger:
         self.module_name = module_name
         self.log_level = config_manager.get("log_level")
 
-        date = datetime.datetime.now(datetime.UTC)
+        date = datetime.datetime.now()
         self.log_filename = f"writable/logs/aquario-{date.year}-{date.month}-{date.day}.log"
 
         self._file_obj = open(self.log_filename, "a")
@@ -29,7 +29,7 @@ class Logger:
         if self._LOG_LEVELS[self.log_level] < self._LOG_LEVELS[level]:
             return
 
-        now = datetime.datetime.now(datetime.UTC)
+        now = datetime.datetime.now()
         time_str = f"[{now.year}-{now.month}-{now.day} {now.hour}:{now.minute}:{now.second}]"
 
         entry = "".join([time_str, " " + level.upper(), f" {self.module_name} | ", message]) + "\n"
