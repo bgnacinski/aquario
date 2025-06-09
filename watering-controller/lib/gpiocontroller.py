@@ -1,10 +1,8 @@
-from lib.logger import Logger
 import RPi.GPIO as GPIO
 
 class GPIOController:
     _logger = None
     def __init__(self):
-        self._logger = Logger("GPIOController")
         GPIO.setmode(GPIO.BCM)
 
     def _set_as_output(self, pin:int):

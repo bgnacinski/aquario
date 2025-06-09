@@ -3,13 +3,13 @@ from lib.settings import SettingsManager
 from lib.config import ConfigManager
 from lib.logger import Logger
 import paho.mqtt.client as mqtt
+import datetime
 import schedule
 import json
 import time
 
 logger = Logger("main")
 
-#schedule_manager = ScheduleManager()
 config = ConfigManager("config.json")
 settings_manager = SettingsManager()
 SETTINGS = settings_manager.get()
@@ -25,6 +25,7 @@ SECTIONS = config.get("sections")
 def send_message(topic:str, message: dict):
     global mqtt_client
 
+    logger.debug(f"Sending message on '{topic}': {message}")
     mqtt_client.publish(topic, json.dumps(message))
 
 def status_update(message: str, error: bool = False):
@@ -44,10 +45,14 @@ def section_watering(section: str, enable: bool = True):
         status_update(f"Section '{section}' not found.")
         return
 
-    if SETTINGS["global_lock"]:
-        logger.info(f"Global watering lock enabled - not proceeding.")
-        status_update(f"Global watering lock enabled - not proceeding.")
-        return
+    if SETTINGS["lock_until"]:
+        date_now = datetime.date.today()
+        date_until = datetime.datetime.strptime(SETTINGS["lock_until"], "%Y-%m-%d").date()
+
+        if date_now <= date_until:
+            logger.info(f"Global watering lock enabled until {date_until} - not proceeding.")
+            status_update(f"Global watering lock enabled until {date_until} - not proceeding.")
+            return
 
     valve_pin = SECTIONS[section]["valve_pin"]
 
@@ -151,6 +156,10 @@ def on_message(client, userdata, msg):
 
                 settings_manager.write(value, setting)
                 SETTINGS = settings_manager.get()
+                send_message(reply_to, {
+                    "success": True,
+                    "message": f"Updated setting '{setting}' to '{value}'."
+                })
 
                 # update schedule if needed
                 if setting == "schedule":
@@ -181,8 +190,8 @@ def on_message(client, userdata, msg):
                 raise ValueError("'operation' may be only 'set' or 'get'")
 
     except KeyError or ValueError as e:
-        logger.error(f"Invalid payload {payload}.\nError: {e}")
-        status_update(f"Invalid payload {payload}.\nError: {e}", True)
+        logger.error(f"Error: {e}. Invalid payload {payload}.")
+        status_update(f"Error: {e}. Invalid payload {payload}", True)
         return
 
 # load schedule from file
