@@ -1,0 +1,8 @@
+services:
+  aquario:
+    build: .
+    container_name: aquario
+    hostname: aquario
+    environment:
+      - PYTHONUNBUFFERED=1 # required to see stdout
+    restart: unless-stopped

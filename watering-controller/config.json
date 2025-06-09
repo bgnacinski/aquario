@@ -1,0 +1,20 @@
+{
+  "log_level": "info",
+  "mqtt": {
+    "server_address": "10.0.3.21",
+    "port": 1883,
+    "timeout": 60,
+    "topic_prefix": "home/garden/watering/"
+  },
+  "sections": {
+    "front_section": {
+      "valve_pin": 17
+    },
+    "middle_section": {
+      "valve_pin": 27
+    },
+    "rear_section": {
+      "valve_pin": 30
+    }
+  }
+}
