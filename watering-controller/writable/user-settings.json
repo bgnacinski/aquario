@@ -1,3 +1,4 @@
 {
-  "schedule": {}
+  "schedule": {},
+  "lock_until": {}
 }
