@@ -42,16 +42,17 @@ def section_watering(section: str, enable: bool = True):
 
     if section not in list(SECTIONS.keys()):
         logger.error(f"Section '{section}' not found.")
-        status_update(f"Section '{section}' not found.")
+        status_update(f"Section '{section}' not found.", True)
         return
 
-    if SETTINGS["lock_until"]:
+    if SETTINGS["lock_until"] and SETTINGS["lock_until"] != "none":
         date_now = datetime.date.today()
         date_until = datetime.datetime.strptime(SETTINGS["lock_until"], "%Y-%m-%d").date()
 
         if date_now <= date_until:
             logger.info(f"Global watering lock enabled until {date_until} - not proceeding.")
-            status_update(f"Global watering lock enabled until {date_until} - not proceeding.")
+            # returning status as error for UI(?)
+            status_update(f"Global watering lock enabled until {date_until} - not proceeding.", True)
             return
 
     valve_pin = SECTIONS[section]["valve_pin"]
@@ -154,6 +155,32 @@ def on_message(client, userdata, msg):
                     section_watering(value["name"], value["enabled"])
                     return
 
+                elif setting == "lock_until":
+                    lock_type = value["type"]
+
+                    if lock_type == "date":
+                        lock_until = value["value"]
+
+                        try:
+                            value = datetime.datetime.strptime(lock_until, "%Y-%m-%d").strftime("%Y-%m-%d")
+
+                        except ValueError:
+                            raise ValueError("Invalid date format. Expected format: YYYY-MM-DD")
+
+                    elif lock_type == "days":
+                        lock_until = value["value"]
+
+                        lock_until = int(lock_until)
+
+                        lock_until = datetime.date.today() + datetime.timedelta(days=lock_until)
+                        value = lock_until.strftime("%Y-%m-%d")
+
+                    elif lock_type == "none":
+                        value = "none"
+
+                    else:
+                        raise ValueError("Invalid lock_until.type value. Allowed values: date, time, none")
+
                 settings_manager.write(value, setting)
                 SETTINGS = settings_manager.get()
                 send_message(reply_to, {
@@ -189,9 +216,9 @@ def on_message(client, userdata, msg):
             else:
                 raise ValueError("'operation' may be only 'set' or 'get'")
 
-    except KeyError or ValueError as e:
-        logger.error(f"Error: {e}. Invalid payload {payload}.")
-        status_update(f"Error: {e}. Invalid payload {payload}", True)
+    except (KeyError, ValueError) as e:
+        logger.error(f"Error: {repr(e)} | Invalid payload {payload}.")
+        status_update(f"Error: {repr(e)} | Invalid payload {payload}", True)
         return
 
 # load schedule from file

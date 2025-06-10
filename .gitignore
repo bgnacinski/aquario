@@ -1,2 +1,3 @@
 .idea/
 watering-controller/lib/__pycache__/
+mosquitto.txt

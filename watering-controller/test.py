@@ -14,8 +14,8 @@ payload_schedule = {
     "value": [
         {
             "section": "front_section",
-            "start_at": "19:39",
-            "end_at": "19:40",
+            "start_at": "14:00",
+            "end_at": "14:02",
             "every": "*"
         }
     ]
@@ -26,28 +26,50 @@ payload_section = {
     "setting": "section",
     "value": {
         "name": "front_section",
-        "enabled": True
+        "enabled": False
     }
 }
 
 payload_get = {
     "operation": "get",
     "reply_to": "manager/replies",
-    "setting": "sections"
+    "setting": "lock_until"
 }
 
-payload_lock = {
+payload_lock_days = {
     "operation": "set",
     "reply_to": "manager/replies",
     "setting": "lock_until",
-    "value": "2025-06-08"
+    "value": {
+        "type": "days",
+        "value": 10
+    }
+}
+
+payload_lock_date = {
+    "operation": "set",
+    "reply_to": "manager/replies",
+    "setting": "lock_until",
+    "value": {
+        "type": "date",
+        "value": "2025-07-01"
+    }
+}
+
+payload_lock_none = {
+    "operation": "set",
+    "reply_to": "manager/replies",
+    "setting": "lock_until",
+    "value": {
+        "type": "none"
+    }
 }
 
 conn.connect("10.0.3.21", 1883, 60)
 conn.subscribe("manager/replies")
 conn.subscribe("home/garden/watering/messages")
-conn.publish("home/garden/watering/manage", json.dumps(payload_section))
+conn.publish("home/garden/watering/manage", json.dumps(payload_schedule))
 conn.on_message = lambda client, userdata, msg: print(msg.topic + " | " + msg.payload.decode())
 conn.loop_start()
 
-time.sleep(2)
+time.sleep(1)

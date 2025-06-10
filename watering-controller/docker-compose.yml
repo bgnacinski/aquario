@@ -5,4 +5,6 @@ services:
     hostname: aquario
     environment:
       - PYTHONUNBUFFERED=1 # required to see stdout
+    devices:
+      - /dev/gpiomem:/dev/gpiomem
     restart: unless-stopped
