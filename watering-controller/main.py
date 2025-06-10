@@ -239,6 +239,13 @@ mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 
 try:
+    if mqtt_config["auth"]:
+        mqtt_client.username_pw_set(mqtt_config["username"], mqtt_config["password"])
+
+except KeyError as e:
+    logger.warning(f"MQTT authentication not configured. {repr(e)}")
+
+try:
     mqtt_client.connect(mqtt_config["server_address"], mqtt_config["port"], mqtt_config["timeout"])
     mqtt_client.loop_start()
 

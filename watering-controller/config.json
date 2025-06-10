@@ -4,7 +4,11 @@
     "server_address": "10.0.3.21",
     "port": 1883,
     "timeout": 60,
-    "topic_prefix": "home/garden/watering/"
+    "topic_prefix": "home/garden/watering/",
+    "auth": {
+      "username": "aquario",
+      "password": "aquario"
+    }
   },
   "sections": {
     "front_section": {

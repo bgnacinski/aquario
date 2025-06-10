@@ -68,7 +68,7 @@ payload_lock_none = {
 conn.connect("10.0.3.21", 1883, 60)
 conn.subscribe("manager/replies")
 conn.subscribe("home/garden/watering/messages")
-conn.publish("home/garden/watering/manage", json.dumps(payload_schedule))
+conn.publish("home/garden/watering/manage", json.dumps(payload_section))
 conn.on_message = lambda client, userdata, msg: print(msg.topic + " | " + msg.payload.decode())
 conn.loop_start()
 
