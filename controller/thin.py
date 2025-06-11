@@ -34,7 +34,7 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload)
 
-        toggle_relay(int(payload["pin"]), payload["enable"])
+        toggle_relay(int(payload["relay_pin"]), payload["enable"])
 
     except (KeyError, ValueError) as e:
         print("Error: " + repr(e) + " | Invalid payload: " + str(msg.payload))
