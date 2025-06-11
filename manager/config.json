@@ -1,7 +1,7 @@
 {
   "log_level": "info",
   "mqtt": {
-    "server_address": "10.0.3.21",
+    "server_address": "10.0.1.100",
     "port": 1883,
     "timeout": 60,
     "topic_prefix": "home/garden/watering/",

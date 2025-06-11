@@ -7,6 +7,8 @@ try:
 except:
     conn = mqtt.Client("manager")
 
+conn.username_pw_set("tester", "tester")
+
 payload_schedule = {
     "operation": "set",
     "reply_to": "manager/replies",
@@ -65,10 +67,14 @@ payload_lock_none = {
     }
 }
 
+payload_thin = {
+    "pin": 17,
+    "enable": False
+}
+
 conn.connect("10.0.3.21", 1883, 60)
-conn.subscribe("manager/replies")
-conn.subscribe("home/garden/watering/messages")
-conn.publish("home/garden/watering/manage", json.dumps(payload_section))
+conn.subscribe("watering/status")
+conn.publish("watering/controller1", json.dumps(payload_thin))
 conn.on_message = lambda client, userdata, msg: print(msg.topic + " | " + msg.payload.decode())
 conn.loop_start()
 
