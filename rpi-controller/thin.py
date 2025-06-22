@@ -3,6 +3,8 @@ import paho.mqtt.client as mqtt
 import json
 
 def annouce_state(relay_pin:int, watering:bool):
+    global config
+
     payload = {
         "watering": watering,
         "relay_pin": relay_pin
@@ -10,7 +12,7 @@ def annouce_state(relay_pin:int, watering:bool):
 
     print("Annoucing payload: ", payload)
 
-    mqtt_client.publish("watering/status", json.dumps(payload))
+    mqtt_client.publish(config["topic_prefix"] + "/status", json.dumps(payload))
 
 def toggle_relay(relay_pin:int, enable:bool = True):
     GPIO.setup(relay_pin, GPIO.OUT)
@@ -28,7 +30,7 @@ def on_connect(client, userdata, flags, rc, properties=None):
     global config
 
     print("Connected to Aquario MQTT broker with result code: " + str(rc))
-    client.subscribe(config["topic_prefix"] + "#")
+    client.subscribe(config["topic_prefix"] + config["client_id"])
 
 def on_message(client, userdata, msg):
     try:

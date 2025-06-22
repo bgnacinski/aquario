@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /opt/aquario/controller/thin.py
-WorkingDirectory=/opt/aquario/controller/
+ExecStart=/usr/bin/python3 /opt/aquario/thin.py
+WorkingDirectory=/opt/aquario/
 Restart=on-failure
 User=aquario
 Environment=PYTHONUNBUFFERED=1
